@@ -110,5 +110,8 @@ namespace Talabat.Service
 
             return order;
         }
+
+        public async Task<IReadOnlyList<DeliveryMethod>> GetDiliveryMethodsAsync()
+          => await _unitOfWork.Repositoriy<DeliveryMethod>().GetAllAsync();
     }
 }
