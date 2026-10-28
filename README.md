@@ -1,6 +1,6 @@
 # E-Commerce Platform
 
-A feature-rich, modern e-commerce platform built with **ASP.NET Core 8 Web API** and **Angular**. This project provides a complete online shopping experience, from browsing products and managing carts to completing orders and user account management.
+A feature-rich, modern e-commerce platform built with **ASP.NET Core Web API**. This project provides a complete online shopping experience, from browsing products and managing carts to completing orders and user account management.
 
 ---
 
