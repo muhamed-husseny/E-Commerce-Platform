@@ -128,7 +128,7 @@
     "BrandId": 2
   },
   {
-    "Name": "Angular Purple Boots",
+    "Name": "Purple Berry Blend",
     "Description": "Aenean nec lorem. In porttitor. Donec laoreet nonummy augue.",
     "Price": 150,
     "PictureUrl": "images/products/boot-ang2.png",
@@ -136,7 +136,7 @@
     "BrandId": 1
   },
   {
-    "Name": "Angular Blue Boots",
+    "Name": "Blue Mountain Coffee",
     "Description": "Suspendisse dui purus, scelerisque at, vulputate vitae, pretium mattis, nunc. Mauris eget neque at sem venenatis eleifend. Ut nonummy.",
     "Price": 180,
     "PictureUrl": "images/products/boot-ang1.png",
