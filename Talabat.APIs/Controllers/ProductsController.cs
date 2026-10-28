@@ -74,5 +74,44 @@ namespace Talabat.APIs.Controllers
             var categories = await _categoriesRepo.GetAllAsync();
             return Ok(categories);
         }
+
+        [HttpPost("upload-image")]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult> UploadImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(new ApiResponse(400, "No file uploaded or file is empty"));
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+                return BadRequest(new ApiResponse(400, "Invalid file format. Allowed formats: .jpg, .jpeg, .png, .webp, .gif"));
+
+            if (file.Length > 5 * 1024 * 1024)
+                return BadRequest(new ApiResponse(400, "File size exceeds 5MB limit"));
+
+            var imagesFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "Products");
+            if (!Directory.Exists(imagesFolder))
+                Directory.CreateDirectory(imagesFolder);
+
+            var uniqueFileName = $"{Guid.NewGuid()}{extension}";
+            var filePath = Path.Combine(imagesFolder, uniqueFileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var fullUrl = $"{baseUrl}/images/products/{uniqueFileName}";
+            var relativeUrl = $"images/products/{uniqueFileName}";
+
+            return Ok(new
+            {
+                url = fullUrl,
+                relativePath = relativeUrl,
+                fileName = uniqueFileName
+            });
+        }
     }
 }
