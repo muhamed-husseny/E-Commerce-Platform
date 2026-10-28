@@ -1,14 +1,27 @@
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
+using System.Text;
 using Talabat.APIs.Errors;
 using Talabat.APIs.Helpers;
 using Talabat.APIs.Middlewares;
+using Talabat.Core;
+using Talabat.Core.Entities.Identity;
 using Talabat.Core.Entities.Products;
 using Talabat.Core.Repositories.Contract;
+using Talabat.Core.Service.Contract;
 using Talabat.Repository;
 using Talabat.Repository.Data;
+using Talabat.Repository.Identity;
+using Talabat.Repository.Identity.DataSeed;
+using Talabat.Service;
 
 namespace Talabat.APIs
 {
@@ -22,19 +35,123 @@ namespace Talabat.APIs
             // Add services to the container.
 
             builder.Services.AddControllers();
+            builder.Services.AddHttpContextAccessor();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(options =>
+            {
+                options.SwaggerDoc("v1", new OpenApiInfo { Title = "Talabat APIs", Version = "v1" });
+
+                var securityScheme = new OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer",
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                };
+
+                options.AddSecurityDefinition("Bearer", securityScheme);
+
+                var securityRequirement = new OpenApiSecurityRequirement
+                {
+                    {
+                        securityScheme,
+                        new[] { "Bearer" }
+                    }
+                };
+
+                options.AddSecurityRequirement(securityRequirement);
+            });
 
 
             builder.Services.AddDbContext<StoreDbContext>(options =>
             {
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-            }); 
+            });
+
+            builder.Services.AddDbContext<AppIdentityDbContext>(options =>
+            {
+                options.UseSqlServer(builder.Configuration.GetConnectionString("IdentityConnection"));
+            });
+
+            builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+            {
+                var config = builder.Configuration.GetConnectionString("Redis") ?? "localhost";
+                var options = ConfigurationOptions.Parse(config, true);
+                options.AbortOnConnectFail = false;
+                options.ConnectTimeout = 2000;
+                try
+                {
+                    return ConnectionMultiplexer.Connect(options);
+                }
+                catch
+                {
+                    return null!;
+                }
+            });
+
+            builder.Services.AddScoped<IBasketRepository, BasketRepository>();
+
+            builder.Services.AddScoped<IUnitOfWork,UnitOfWork>();
+
+            builder.Services.AddScoped<IOrderService, OrderService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<ITokenService, TokenService>();
+
+            builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
+            {
+                options.Password.RequireDigit = false;
+                options.Password.RequireLowercase = false;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequiredLength = 4;
+            }).AddEntityFrameworkStores<AppIdentityDbContext>()
+              .AddDefaultTokenProviders();
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"]!)),
+                    ValidateIssuer = true,
+                    ValidIssuer = builder.Configuration["JWT:Issuer"],
+                    ValidateAudience = true,
+                    ValidAudience = builder.Configuration["JWT:Audience"],
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
 
             builder.Services.AddScoped(typeof(IGenaricRepositoriy<>), typeof(GenaricRepository<>));
 
             builder.Services.AddAutoMapper(typeof(MappingProfiles));
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("CorsPolicy", policy =>
+                {
+                    policy.AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .WithOrigins("http://localhost:4200");
+                });
+            });
+
+            builder.Services.AddHttpsRedirection(options =>
+            {
+                options.HttpsPort = 7099;
+            });
 
             builder.Services.Configure<ApiBehaviorOptions>(options =>
             {
@@ -54,6 +171,7 @@ namespace Talabat.APIs
                     return new BadRequestObjectResult(response);
                 };
             });
+            
 
             #endregion
 
@@ -63,8 +181,11 @@ namespace Talabat.APIs
 
             var Services = scope.ServiceProvider;
 
+            #region Update Database
             var _dbContext = Services.GetRequiredService<StoreDbContext>();
             // Ask CLR for Creating Object from dbContext Explicitly
+
+            var _IdentityDbContext = Services.GetRequiredService<AppIdentityDbContext>();
 
             var LoggerFactory = Services.GetRequiredService<ILoggerFactory>();
 
@@ -73,13 +194,20 @@ namespace Talabat.APIs
                 await _dbContext.Database.MigrateAsync(); // Update Database
 
                 await StoreDbContextSeed.SeedAsync(_dbContext); // Data Seeding
+
+                await _IdentityDbContext.Database.MigrateAsync();
+
+                var _userManager = Services.GetRequiredService<UserManager<AppUser>>();
+                await AppIdentityDbContextSeed.SeedUsersAsync(_userManager);
+
             }
             catch (Exception ex)
             {
                 var logger = LoggerFactory.CreateLogger<Program>();
                 logger.LogError(ex, "An error occurred during migration");
 
-            }
+            } 
+            #endregion
 
             #region Configure Kestrel Middlewares
 
@@ -98,6 +226,10 @@ namespace Talabat.APIs
 
             app.UseStaticFiles();
 
+            app.UseCors("CorsPolicy");
+
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.MapControllers(); 
             #endregion
