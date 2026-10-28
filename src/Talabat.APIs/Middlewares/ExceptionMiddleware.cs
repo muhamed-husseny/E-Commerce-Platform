@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text.Json;
 using Talabat.APIs.Errors;
 
@@ -24,22 +24,20 @@ namespace Talabat.APIs.Middlewares
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex, "An unhandled exception occurred: {Message}", ex.Message);
                 
-                httpContext.Response.StatusCode = (int) HttpStatusCode.InternalServerError;
+                httpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                 httpContext.Response.ContentType = "application/json";
 
-                var response = _env.IsDevelopment() ?
-                    new ApiExceptionResponse((int)HttpStatusCode.InternalServerError, ex.Message, ex.StackTrace)
-                 : new ApiExceptionResponse((int)HttpStatusCode.InternalServerError);
+                var response = _env.IsDevelopment()
+                    ? new ApiExceptionResponse((int)HttpStatusCode.InternalServerError, ex.Message, ex.StackTrace)
+                    : new ApiExceptionResponse((int)HttpStatusCode.InternalServerError, "An internal server error occurred.");
 
-                var options = new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+                var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-                var Json = JsonSerializer.Serialize(response);
+                var json = JsonSerializer.Serialize(response, options);
 
-                await httpContext.Response.WriteAsync(Json);
-
-
+                await httpContext.Response.WriteAsync(json);
             }
         }
     }

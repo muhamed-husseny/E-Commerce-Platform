@@ -114,6 +114,12 @@ namespace Talabat.APIs
             }).AddEntityFrameworkStores<AppIdentityDbContext>()
               .AddDefaultTokenProviders();
 
+            var jwtKey = builder.Configuration["JWT:Key"] ?? "DEVELOPMENT_FALLBACK_KEY_AT_LEAST_32_CHARS_LONG_FOR_SECURITY";
+            if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+            {
+                jwtKey = jwtKey.PadRight(32, '!');
+            }
+
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -124,7 +130,7 @@ namespace Talabat.APIs
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"]!)),
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
                     ValidateIssuer = true,
                     ValidIssuer = builder.Configuration["JWT:Issuer"],
                     ValidateAudience = true,
@@ -138,13 +144,16 @@ namespace Talabat.APIs
 
             builder.Services.AddAutoMapper(typeof(MappingProfiles));
 
+            var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                ?? new[] { "http://localhost:4200" };
+
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("CorsPolicy", policy =>
                 {
-                    policy.AllowAnyHeader()
-                          .AllowAnyMethod()
-                          .WithOrigins("http://localhost:4200");
+                    policy.WithOrigins(allowedOrigins)
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
                 });
             });
 
@@ -198,7 +207,8 @@ namespace Talabat.APIs
                 await _IdentityDbContext.Database.MigrateAsync();
 
                 var _userManager = Services.GetRequiredService<UserManager<AppUser>>();
-                await AppIdentityDbContextSeed.SeedUsersAsync(_userManager);
+                var config = Services.GetRequiredService<IConfiguration>();
+                await AppIdentityDbContextSeed.SeedUsersAsync(_userManager, config);
 
             }
             catch (Exception ex)
@@ -218,6 +228,10 @@ namespace Talabat.APIs
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+            }
+            else
+            {
+                app.UseHsts();
             }
 
             app.UseStatusCodePagesWithReExecute("/errors/{0}");

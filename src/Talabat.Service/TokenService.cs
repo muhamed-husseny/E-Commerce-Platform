@@ -33,7 +33,12 @@ namespace Talabat.Service
                 authClaims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var authKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Key"]!));
+            var jwtKey = _configuration["JWT:Key"] ?? "DEVELOPMENT_FALLBACK_KEY_AT_LEAST_32_CHARS_LONG_FOR_SECURITY";
+            if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+            {
+                jwtKey = jwtKey.PadRight(32, '!');
+            }
+            var authKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
 
             var durationInDays = double.TryParse(_configuration["JWT:DurationInDays"], out var days) ? days : 30;
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,22 +11,26 @@ namespace Talabat.Repository.Identity.DataSeed
 {
     public class AppIdentityDbContextSeed
     {
-        public static async Task SeedUsersAsync(UserManager<AppUser> _userManager)
+        public static async Task SeedUsersAsync(UserManager<AppUser> userManager, IConfiguration? configuration = null)
         {
-            if (_userManager.Users.Count() == 0)
+            if (!userManager.Users.Any())
             {
-                var users = new AppUser()
+                var displayName = configuration?["SeedUser:DisplayName"] ?? "Talabat Admin";
+                var email = configuration?["SeedUser:Email"] ?? "admin@talabat.dev";
+                var userName = configuration?["SeedUser:UserName"] ?? "admin";
+                var phoneNumber = configuration?["SeedUser:PhoneNumber"] ?? "1234567890";
+                var password = configuration?["SeedUser:Password"] ?? "Admin@123456";
+
+                var user = new AppUser
                 {
-                    DisplayName = "Mohamed",
-                    Email = "muhammedhusseny@gmail.com",
-                    UserName = "mohamedhusseny",
-                    PhoneNumber = "01110809368",
+                    DisplayName = displayName,
+                    Email = email,
+                    UserName = userName,
+                    PhoneNumber = phoneNumber,
                 };
 
-                await _userManager.CreateAsync(users, "Mohamed123$");
+                await userManager.CreateAsync(user, password);
             }
-
         }
-       
     }
 }
