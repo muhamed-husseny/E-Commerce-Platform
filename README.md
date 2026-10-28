@@ -30,13 +30,13 @@ Features
 
 
 ## Viewe
-Home Page:
+**Home Page:**
 <img width="1865" height="800" alt="image" src="https://github.com/user-attachments/assets/535536a8-075b-42c5-97d0-55a9ebc6a7e6" />
 
-Shoping Page:
+**Shoping Page:**
 <img width="1818" height="893" alt="image" src="https://github.com/user-attachments/assets/a2d11b48-757e-47af-a5a1-79939b7f9729" />
 
-Cart Page:
+**Cart Page:**
 <img width="1825" height="875" alt="image" src="https://github.com/user-attachments/assets/c3fa9144-8ad9-4e2e-b37e-093b9b9bdb67" />
 
 
