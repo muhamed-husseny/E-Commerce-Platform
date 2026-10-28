@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Talabat.Service", "Talabat.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CarAutomotive.Infrastructure", "..\..\CarAutomotive\src\CarAutomotive.Infrastructure\CarAutomotive.Infrastructure.csproj", "{3E7189D3-61C5-4F6C-3DCF-89CC8F3D201E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +37,10 @@ Global
 		{8D3167B6-962B-4A1A-928D-B9394F75E140}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8D3167B6-962B-4A1A-928D-B9394F75E140}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8D3167B6-962B-4A1A-928D-B9394F75E140}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E7189D3-61C5-4F6C-3DCF-89CC8F3D201E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E7189D3-61C5-4F6C-3DCF-89CC8F3D201E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E7189D3-61C5-4F6C-3DCF-89CC8F3D201E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E7189D3-61C5-4F6C-3DCF-89CC8F3D201E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -44,6 +50,7 @@ Global
 		{1B2A3E8B-1B6C-4F3F-9EE5-C44B6C99A891} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{4608B6E8-7A36-42CF-8F31-D94529F2412F} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{8D3167B6-962B-4A1A-928D-B9394F75E140} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{3E7189D3-61C5-4F6C-3DCF-89CC8F3D201E} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D9056476-22B5-4D83-8C8E-BD459881E567}
