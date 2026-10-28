@@ -1,17 +1,17 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using Talabat.APIs.Dtos;
 using Talabat.APIs.Errors;
-using Talabat.Core.Entities.Identity;
 using Talabat.Core.Entities.Order_Aggregate;
 using Talabat.Core.Service.Contract;
-using System.Security.Claims;
 using Address = Talabat.Core.Entities.Order_Aggregate.Address;
 
 namespace Talabat.APIs.Controllers
 {
-   
+    [Authorize]
     public class OrdersController : BaseApiController
     {
         private readonly IOrderService _orderService;
@@ -29,20 +29,13 @@ namespace Talabat.APIs.Controllers
         [HttpPost]
         public async Task<ActionResult<OrderToReturnDto>> CreateOrder(OrderDto orderDto)
         {
-            var buyerEmail = User.FindFirstValue(System.Security.Claims.ClaimTypes.Email) ?? orderDto.BuyerEmail;
+            var buyerEmail = User.FindFirstValue(ClaimTypes.Email);
             if (string.IsNullOrEmpty(buyerEmail))
-            {
-                var authHeader = Request.Headers["Authorization"].FirstOrDefault();
-                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
-                {
-                    var tokenCandidate = authHeader.Substring("Bearer ".Length).Trim();
-                    if (tokenCandidate.Contains("@")) buyerEmail = tokenCandidate;
-                }
-            }
+                return Unauthorized(new ApiResponse(401));
 
             var shippingAddress = orderDto.ShipToAddress ?? orderDto.ShippingAddress;
             var address = _mapper.Map<AddressDto, Address>(shippingAddress);
-            var order = await _orderService.CreateOrderAsync(buyerEmail ?? "guest@example.com", orderDto.BasketId,
+            var order = await _orderService.CreateOrderAsync(buyerEmail, orderDto.BasketId,
                                                              orderDto.DeliveryMethodId, address);
 
             if (order is null) return BadRequest(new ApiResponse(400));
@@ -51,21 +44,11 @@ namespace Talabat.APIs.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IReadOnlyList<OrderToReturnDto>>> GetOrdersForUsers([FromQuery] string? email)
+        public async Task<ActionResult<IReadOnlyList<OrderToReturnDto>>> GetOrdersForUsers()
         {
-            var buyerEmail = User.FindFirstValue(System.Security.Claims.ClaimTypes.Email) ?? email;
+            var buyerEmail = User.FindFirstValue(ClaimTypes.Email);
             if (string.IsNullOrEmpty(buyerEmail))
-            {
-                var authHeader = Request.Headers["Authorization"].FirstOrDefault();
-                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
-                {
-                    var tokenCandidate = authHeader.Substring("Bearer ".Length).Trim();
-                    if (tokenCandidate.Contains("@")) buyerEmail = tokenCandidate;
-                }
-            }
-
-            if (string.IsNullOrEmpty(buyerEmail))
-                return Ok(new List<OrderToReturnDto>());
+                return Unauthorized(new ApiResponse(401));
 
             var orders = await _orderService.GetOrdersForUsersAsync(buyerEmail);
 
@@ -75,32 +58,26 @@ namespace Talabat.APIs.Controllers
         [ProducesResponseType(typeof(OrderToReturnDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
         [HttpGet("{id}")]
-        public async Task<ActionResult<OrderToReturnDto>> GetOrderForUser(int id, [FromQuery] string? email)
+        public async Task<ActionResult<OrderToReturnDto>> GetOrderForUser(int id)
         {
-            var buyerEmail = User.FindFirstValue(System.Security.Claims.ClaimTypes.Email) ?? email;
+            var buyerEmail = User.FindFirstValue(ClaimTypes.Email);
             if (string.IsNullOrEmpty(buyerEmail))
-            {
-                var authHeader = Request.Headers["Authorization"].FirstOrDefault();
-                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
-                {
-                    var tokenCandidate = authHeader.Substring("Bearer ".Length).Trim();
-                    if (tokenCandidate.Contains("@")) buyerEmail = tokenCandidate;
-                }
-            }
+                return Unauthorized(new ApiResponse(401));
 
-            var order = await _orderService.GetOrderByIdAsync(id, buyerEmail ?? string.Empty);
+            var order = await _orderService.GetOrderByIdAsync(id, buyerEmail);
 
             if (order is null) return NotFound(new ApiResponse(404));
 
             return Ok(_mapper.Map<OrderToReturnDto>(order));
         }
 
+        [AllowAnonymous]
         [HttpGet("deliveryMethods")]
         public async Task<ActionResult<IReadOnlyList<DeliveryMethod>>> GetDeliveryMethods()
         {
-            var deliveryMetods = await _orderService.GetDiliveryMethodsAsync();
+            var deliveryMethods = await _orderService.GetDiliveryMethodsAsync();
 
-            return Ok(deliveryMetods);
+            return Ok(deliveryMethods);
         }
     }
 }

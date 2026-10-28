@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -19,39 +20,34 @@ namespace Talabat.APIs.Controllers
         private readonly IMapper _mapper;
         private readonly IEmailService _emailService;
         private readonly IConfiguration _configuration;
+        private readonly ITokenService _tokenService;
 
         public AccountController(
             UserManager<AppUser> userManager,
             SignInManager<AppUser> signInManager,
             IMapper mapper,
             IEmailService emailService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ITokenService tokenService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _mapper = mapper;
             _emailService = emailService;
             _configuration = configuration;
+            _tokenService = tokenService;
         }
 
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<UserDto>> GetCurrentUser()
         {
             var email = User.FindFirstValue(ClaimTypes.Email);
 
             if (string.IsNullOrEmpty(email))
-            {
-                var authHeader = Request.Headers["Authorization"].FirstOrDefault();
-                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
-                {
-                    var tokenCandidate = authHeader.Substring("Bearer ".Length).Trim();
-                    if (tokenCandidate.Contains("@")) email = tokenCandidate;
-                }
-            }
+                return Unauthorized(new ApiResponse(401));
 
-            var user = !string.IsNullOrEmpty(email) 
-                ? await _userManager.FindByEmailAsync(email) 
-                : await _userManager.Users.FirstOrDefaultAsync();
+            var user = await _userManager.FindByEmailAsync(email);
 
             if (user is null)
                 return Unauthorized(new ApiResponse(401));
@@ -60,7 +56,7 @@ namespace Talabat.APIs.Controllers
             {
                 DisplayName = user.DisplayName,
                 Email = user.Email!,
-                Token = user.Email!
+                Token = await _tokenService.CreateTokenAsync(user, _userManager)
             });
         }
 
@@ -70,13 +66,15 @@ namespace Talabat.APIs.Controllers
             return await _userManager.FindByEmailAsync(email) is not null;
         }
 
+        [Authorize]
         [HttpGet("address")]
         public async Task<ActionResult<AddressDto>> GetUserAddress()
         {
             var email = User.FindFirstValue(ClaimTypes.Email);
-            var user = !string.IsNullOrEmpty(email)
-                ? await _userManager.Users.Include(u => u.Address).FirstOrDefaultAsync(u => u.Email == email)
-                : await _userManager.Users.Include(u => u.Address).FirstOrDefaultAsync();
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized(new ApiResponse(401));
+
+            var user = await _userManager.Users.Include(u => u.Address).FirstOrDefaultAsync(u => u.Email == email);
 
             if (user?.Address is null)
                 return Ok(new AddressDto { FirstName = "", LastName = "", Street = "", City = "", Country = "" });
@@ -84,13 +82,15 @@ namespace Talabat.APIs.Controllers
             return Ok(_mapper.Map<AddressDto>(user.Address));
         }
 
+        [Authorize]
         [HttpPut("address")]
         public async Task<ActionResult<AddressDto>> UpdateUserAddress(AddressDto newAddress)
         {
             var email = User.FindFirstValue(ClaimTypes.Email);
-            var user = !string.IsNullOrEmpty(email)
-                ? await _userManager.Users.Include(u => u.Address).FirstOrDefaultAsync(u => u.Email == email)
-                : await _userManager.Users.Include(u => u.Address).FirstOrDefaultAsync();
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized(new ApiResponse(401));
+
+            var user = await _userManager.Users.Include(u => u.Address).FirstOrDefaultAsync(u => u.Email == email);
 
             if (user is null)
                 return Unauthorized(new ApiResponse(401));
@@ -123,7 +123,7 @@ namespace Talabat.APIs.Controllers
             {
                 DisplayName = user.DisplayName,
                 Email = user.Email!,
-                Token = user.Email!
+                Token = await _tokenService.CreateTokenAsync(user, _userManager)
             });
         }
 
@@ -157,7 +157,7 @@ namespace Talabat.APIs.Controllers
             {
                 DisplayName = user.DisplayName,
                 Email = user.Email!,
-                Token = user.Email!
+                Token = await _tokenService.CreateTokenAsync(user, _userManager)
             });
         }
 
@@ -208,21 +208,12 @@ namespace Talabat.APIs.Controllers
             return Ok(new { message = "Password has been reset successfully" });
         }
 
+        [Authorize]
         [HttpPost("changePassword")]
         [HttpPost("change-password")]
         public async Task<ActionResult> ChangePassword(ChangePasswordDto model)
         {
-            var email = User.FindFirstValue(ClaimTypes.Email);
-            if (string.IsNullOrEmpty(email))
-            {
-                var authHeader = Request.Headers["Authorization"].FirstOrDefault();
-                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
-                {
-                    var tokenCandidate = authHeader.Substring("Bearer ".Length).Trim();
-                    if (tokenCandidate.Contains("@")) email = tokenCandidate;
-                }
-            }
-            if (string.IsNullOrEmpty(email)) email = model.Email;
+            var email = User.FindFirstValue(ClaimTypes.Email) ?? model.Email;
 
             if (string.IsNullOrEmpty(email))
                 return Unauthorized(new ApiResponse(401, "User email not provided"));
