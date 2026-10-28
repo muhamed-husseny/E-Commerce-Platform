@@ -7,11 +7,11 @@ namespace Talabat.APIs.Errors
 
         public string Message { get; set; }
 
-        public ApiResponse(int StatusCode, string? Message = null)
+        public ApiResponse(int statusCode, string? message = null)
         {
-            StatusCode = StatusCode;
+            this.StatusCode = statusCode;
 
-            Message = Message ?? GetDefaultMessageForStatusCode(StatusCode);
+            this.Message = message ?? GetDefaultMessageForStatusCode(StatusCode);
         }
 
         private string? GetDefaultMessageForStatusCode(int statusCode)

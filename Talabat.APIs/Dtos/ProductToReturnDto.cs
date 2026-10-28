@@ -1,9 +1,11 @@
-﻿using Talabat.Core.Entities.Products;
+﻿using Talabat.Core.Entities;
+using Talabat.Core.Entities.Products;
 
 namespace Talabat.APIs.Dtos
 {
-    public class ProductToReturnDto
+    public class ProductToReturnDto 
     {
+        public int Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public decimal Price { get; set; }
