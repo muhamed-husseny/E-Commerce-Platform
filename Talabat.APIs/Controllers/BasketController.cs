@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Talabat.APIs.Dtos;
@@ -24,27 +24,35 @@ namespace Talabat.APIs.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<CustomerBasket>> GetBasket(string id)
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<CustomerBasket>> GetBasket([FromQuery] string id)
         {
+            if (string.IsNullOrEmpty(id))
+                return Ok(new CustomerBasket());
+
             var basket = await _basketRepository.GetBasketAsync(id);
             return Ok(basket ?? new CustomerBasket(id));
         }
 
         [HttpPost]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<CustomerBasket>> UpdateBasket(CustomerBasketDto basket)
         {
             var mappedBasket = _mapper.Map<CustomerBasketDto, CustomerBasket>(basket);
 
-            var CreatedOrUpdatedBasket = await _basketRepository.UbdateBasketAsync(mappedBasket);
-            if (CreatedOrUpdatedBasket is null) return BadRequest(new ApiResponse(400));
+            var createdOrUpdatedBasket = await _basketRepository.UpdateBasketAsync(mappedBasket);
+            if (createdOrUpdatedBasket is null) 
+                return BadRequest(new ApiResponse(400));
 
-            return Ok(CreatedOrUpdatedBasket);
+            return Ok(createdOrUpdatedBasket);
         }
 
         [HttpDelete]
-        public async Task DeleteBasket(string id)
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<bool>> DeleteBasket([FromQuery] string id)
         {
-            await _basketRepository.DeleteBasketAsync(id);
+            return Ok(await _basketRepository.DeleteBasketAsync(id));
         }
 
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Linq;
@@ -13,8 +13,8 @@ namespace Talabat.Core.Spicifications.Product_Spec
     {
         public ProductWithBrandAndCategorySpecifications(ProductSpecParams specParams) : base(P =>
         (string.IsNullOrEmpty(specParams.Search) || P.Name.ToLower().Contains(specParams.Search)) &&
-        (!specParams.BrandId.HasValue || P.BrandId == specParams.BrandId.Value) &&
-        (!specParams.CategoryId.HasValue || P.CategoryId == specParams.CategoryId.Value))
+        (!specParams.BrandId.HasValue || specParams.BrandId == 0 || P.BrandId == specParams.BrandId.Value) &&
+        (!specParams.CategoryId.HasValue || specParams.CategoryId == 0 || P.CategoryId == specParams.CategoryId.Value))
         {
             Includes.Add(P => P.Brand);
             Includes.Add(P => P.Category);

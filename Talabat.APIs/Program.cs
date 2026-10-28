@@ -46,10 +46,20 @@ namespace Talabat.APIs
                 options.UseSqlServer(builder.Configuration.GetConnectionString("IdentityConnection"));
             });
 
-            builder.Services.AddSingleton<IConnectionMultiplexer>(SP =>
+            builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
             {
-                var config = builder.Configuration.GetConnectionString("Redis");
-                return ConnectionMultiplexer.Connect(config);
+                var config = builder.Configuration.GetConnectionString("Redis") ?? "localhost";
+                var options = ConfigurationOptions.Parse(config, true);
+                options.AbortOnConnectFail = false;
+                options.ConnectTimeout = 2000;
+                try
+                {
+                    return ConnectionMultiplexer.Connect(options);
+                }
+                catch
+                {
+                    return null!;
+                }
             });
 
             builder.Services.AddScoped<IBasketRepository, BasketRepository>();
@@ -57,14 +67,36 @@ namespace Talabat.APIs
             builder.Services.AddScoped<IUnitOfWork,UnitOfWork>();
 
             builder.Services.AddScoped<IOrderService, OrderService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
 
             builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
             {
-            }).AddEntityFrameworkStores<AppIdentityDbContext>();
+                options.Password.RequireDigit = false;
+                options.Password.RequireLowercase = false;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequiredLength = 4;
+            }).AddEntityFrameworkStores<AppIdentityDbContext>()
+              .AddDefaultTokenProviders();
 
-            //builder.Services.AddScoped(typeof(IGenaricRepositoriy<>), typeof(GenaricRepository<>));
+            builder.Services.AddScoped(typeof(IGenaricRepositoriy<>), typeof(GenaricRepository<>));
 
             builder.Services.AddAutoMapper(typeof(MappingProfiles));
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("CorsPolicy", policy =>
+                {
+                    policy.AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .WithOrigins("http://localhost:4200");
+                });
+            });
+
+            builder.Services.AddHttpsRedirection(options =>
+            {
+                options.HttpsPort = 7099;
+            });
 
             builder.Services.Configure<ApiBehaviorOptions>(options =>
             {
@@ -139,6 +171,10 @@ namespace Talabat.APIs
 
             app.UseStaticFiles();
 
+            app.UseCors("CorsPolicy");
+
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.MapControllers(); 
             #endregion

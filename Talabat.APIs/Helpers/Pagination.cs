@@ -1,20 +1,12 @@
-﻿using Talabat.APIs.Dtos;
+using Talabat.APIs.Dtos;
 
 namespace Talabat.APIs.Helpers
 {
     public class Pagination<T>
     {
-        private IReadOnlyList<ProductToReturnDto> data;
-
-       
-
-        public int PageIndex { get; set; }
-
-        public int PageSize { get; set; }
-
-        public int Count { get; set; }
-
-        public IReadOnlyCollection<T> Data { get; set; }
+        public Pagination()
+        {
+        }
 
         public Pagination(int pageIndex, int pageSize, int count, IReadOnlyList<T> data)
         {
@@ -23,6 +15,13 @@ namespace Talabat.APIs.Helpers
             Count = count;
             Data = data;
         }
-        
+
+        public int PageIndex { get; set; }
+
+        public int PageSize { get; set; }
+
+        public int Count { get; set; }
+
+        public IReadOnlyList<T> Data { get; set; }
     }
 }

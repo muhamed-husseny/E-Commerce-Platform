@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Talabat.APIs.Dtos;
@@ -46,18 +46,19 @@ namespace Talabat.APIs.Controllers
             return Ok(new Pagination<ProductToReturnDto>(specParams.PageIndex,specParams.PageSize, count, data));
          }
 
-        [HttpGet("id")]
+        [HttpGet("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ProductToReturnDto>> GetProduct(int id) 
         {
             var spec = new ProductWithBrandAndCategorySpecifications(id);
 
-            var Product = await _productRepo.GetByIdWithSpecAsync(spec);
+            var product = await _productRepo.GetByIdWithSpecAsync(spec);
 
-            if(Product is null)
+            if (product is null)
                 return NotFound(new ApiResponse(404));
 
-            return Ok(_mapper.Map<Product,ProductToReturnDto>(Product));
-
+            return Ok(_mapper.Map<Product, ProductToReturnDto>(product));
         }
 
         [HttpGet("brands")]

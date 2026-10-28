@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,8 +8,8 @@ namespace Talabat.Core.Spicifications.Product_Spec
 {
     public class ProductSpecParams
     {
-        private const int MaxPageSize = 10;
-        private int pageSize = 5;
+        private const int MaxPageSize = 50;
+        private int pageSize = 6;
 
         public int PageSize 
         {

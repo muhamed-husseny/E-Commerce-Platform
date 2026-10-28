@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Talabat.APIs.Dtos;
 using Talabat.Core.Entities.Products;
 
@@ -15,7 +15,11 @@ namespace Talabat.APIs.Helpers
         public string Resolve(Product source, ProductToReturnDto destination, string destMember, ResolutionContext context)
         {
             if (!string.IsNullOrEmpty(source.PictureUrl))
-                return $"{_configuration["ApiBaseUrl"]}/{source.PictureUrl}";
+            {
+                var baseUrl = _configuration["ApiBaseUrl"]?.TrimEnd('/');
+                var pictureUrl = source.PictureUrl.TrimStart('/');
+                return $"{baseUrl}/{pictureUrl}";
+            }
 
             return string.Empty;
         }
